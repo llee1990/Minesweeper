@@ -1,0 +1,70 @@
+body{
+	background-color: cornflowerblue;
+}
+
+@media only screen and (max-width: 600px) {
+    .btn {
+        width: 15px;
+        height: 15px;
+    }
+
+    .revealed {
+    	width: 15px;
+        height: 15px;
+    }
+    
+    .game {
+    	font-size: 13px;
+    }
+
+}
+
+.Top{
+    left: 50%;
+    padding: 20px;
+    text-align: center;
+    margin: auto;
+}
+
+#newgame{
+    text-align: center;
+    margin: auto;
+    padding: 10px;
+    width: 100px;
+    height: 50px;
+}
+.Buttons{
+    text-align: left;
+    margin: auto;
+    padding: 15px;
+}
+#table{
+    background-color: white;
+    padding: 0px;
+    margin: auto;
+    text-align: center;
+}
+#score{
+    background-color: white;
+    padding: 0px;
+    margin: auto;
+    text-align: center;
+}
+
+.resetButton{
+	align-self: center;
+}
+
+
+.game {
+    resize: auto;
+    display: grid;
+    justify-content: center;
+    grid-template-columns: auto;
+    grid-template-areas:
+                'Top'
+                'resetButton'
+                'Buttons'
+                'gameBoard'
+                'Buttons';
+        }

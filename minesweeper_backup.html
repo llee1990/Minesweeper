@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script src="https://www.gstatic.com/firebasejs/5.6.0/firebase.js"></script>
+    <script>
+        // Initialize Firebase
+        var config = {
+            apiKey: "AIzaSyAx-Vt39pKZsinyfB0wGx00PR3yPaiB7IQ",
+            authDomain: "minesweep-8b135.firebaseapp.com",
+            databaseURL: "https://minesweep-8b135.firebaseio.com",
+            projectId: "minesweep-8b135",
+            storageBucket: "minesweep-8b135.appspot.com",
+            messagingSenderId: "610672808094"
+        };
+        firebase.initializeApp(config);
+    </script>
+    <link rel="stylesheet" href="minesweeper.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Minesweeper</title>
+</head>
+
+<body style="background-color:cornflowerblue">
+    <div class="Top">
+        <h1 id="Title"><b>Minesweeper</b></h1>
+        <h1 id="timer">0</h1>
+        <button id="newgame">New Game</button>
+    </div>
+    <div class="game_board">
+        <table id="table"></table>
+    </div>
+    <div class="Buttons">
+        <span><b>Difficulty: </b></span>
+        <button id="Easy" onclick=reset(1)>Easy</button>
+        <button id="Intermediate" onclick=reset(2)>Intermediate</button>
+        <button id="Expert" onclick=reset(3)>Expert</button>
+    </div>
+    <script>
+        let endGame = false;
+        let time = false;
+        let timer = 0;
+        let positions = [];
+        let board = [];
+        let pickedBombLocation = [];
+        let cellsHowManyNumberOfBombs = {};
+        let timestart = setInterval(function () { document.getElementById("timer").innerHTML = timer++ }, 1000);
+
+
+
+        function createTable(width, height, bombs) {
+            let numBombs = bombs;
+            board = []
+            endGame = false;
+            time = false;
+            timer = 0;
+            positions = [];
+            board = [];
+            pickedBombLocation = [];
+            cellsHowManyNumberOfBombs = {};
+            let table = document.getElementById("table");
+            for (y = 0; y <= height; y++) {
+                let row = table.insertRow(y)
+                let line = []
+                for (x = 0; x <= width; x++) {
+                    line.push(0);
+                    positions.push([y, x])
+                    let cell = row.insertCell(x);
+                    let btn = document.createElement("img")
+                    btn.src = './images/grey.png';
+                    btn.style.height = '20px'
+                    btn.style.width = '20px'
+                    btn.id = y + " " + x;
+                    btn.class = 'btn';
+                    cell.appendChild(btn);
+                    btn.addEventListener('click', function () { clickBox(btn, width, height) });
+                    btn.addEventListener('click', function () { timestart });
+                    btn.addEventListener('click', function () { timer = 0 });
+                }
+                board.push(line);
+            }
+            bombPositions = chooseBombLocation(bombs);
+            for (let i = 0; i < bombPositions.length; i++) {
+                board[bombPositions[i][0]][bombPositions[i][1]] = 1;
+            }
+            cellsNeighboringBombs(width, height);
+        }
+
+        function chooseBombLocation(num) {
+            for (let i = 0; i < num; i++) {
+                let randomPos = Math.floor(Math.random() * positions.length);
+                pickedBombLocation.push(positions[randomPos]);
+                positions.splice(randomPos, 1);
+            }
+            return pickedBombLocation
+        }
+
+        function clickBox(btn, width, height) {
+            let position = btn.id.split(" ");
+            let y = parseInt(position[0]);
+            let x = parseInt(position[1]);
+            console.log(y, x)
+            if (board[y][x] == 1) {
+                btn.src = './images/mine.jpg';
+                revealAllBombs();
+            }
+            else {
+                clickNumberedBoxes(btn, y, x, width, height);
+            }
+        }
+
+
+        function countNeighborBombs(y, x, width, height) {
+            let bombCounter = 0;
+            let possibleBombLocations = [[y - 1, x - 1], [y - 1, x], [y - 1, x + 1], [y, x - 1], [y, x + 1], [y + 1, x - 1], [y + 1, x], [y + 1, x + 1]];
+            for (k = 0; k < possibleBombLocations.length; k++) {
+                a = possibleBombLocations[k][0];
+                b = possibleBombLocations[k][1];
+                if (-1 < a && a < height + 1 && -1 < b && b < width + 1) {
+                    let neighborBox = board[a][b]
+                    if (neighborBox == 1) {
+                        bombCounter++;
+                        cellsHowManyNumberOfBombs[[y, x]] = bombCounter;
+                        console.log(cellsHowManyNumberOfBombs)
+                    }
+                }
+            }
+            // clickNumberedBoxes(btn)
+            // expandEmptyCells(y, x, bombCounter, btn)
+        }
+
+        function cellsNeighboringBombs(width, height) {
+            for (i = 0; i < pickedBombLocation.length; i++) {
+                y = pickedBombLocation[i][0];
+                x = pickedBombLocation[i][1];
+                console.log(y, x)
+                labelCellsBesideBombs(y, x, width, height)
+            }
+        }
+
+        function labelCellsBesideBombs(y, x, width, height) {
+            let neighboringCells = [[y - 1, x - 1], [y - 1, x], [y - 1, x + 1],
+            [y, x - 1], [y, x + 1], [y + 1, x - 1], [y + 1, x], [y + 1, x + 1]];
+            for (j = 0; j < neighboringCells.length; j++) {
+                y = neighboringCells[j][0];
+                x = neighboringCells[j][1];
+                if (-1 < y && y < height + 1 && -1 < x && x < width + 1 && board[y][x] != 1) {
+                    board[y][x] = 2;
+                    countNeighborBombs(y, x, width, height);
+                }
+            }
+        }
+
+        function clickNumberedBoxes(btn, y, x, width, height) {
+            if (btn.className == 'revealed') {
+                return;
+            } else {
+                btn.className = 'revealed';
+            }
+            if (!endGame) {
+                if (cellsHowManyNumberOfBombs[[y, x]] == 1) {
+                    btn.src = './images/num1.png'
+                }
+                else if (cellsHowManyNumberOfBombs[[y, x]] == 2) {
+                    btn.src = './images/num2.png'
+                }
+                else if (cellsHowManyNumberOfBombs[[y, x]] == 3) {
+                    btn.src = './images/num3.png'
+                }
+                else if (cellsHowManyNumberOfBombs[[y, x]] == 4) {
+                    btn.src = './images/num4.png'
+                }
+                else if (cellsHowManyNumberOfBombs[[y, x]] == 5) {
+                    btn.src = './images/num5.png'
+                }
+                else if (cellsHowManyNumberOfBombs[[y, x]] == 6) {
+                    btn.src = './images/num6.png'
+                }
+                else if (cellsHowManyNumberOfBombs[[y, x]] == 7) {
+                    btn.src = './images/num7.png'
+                }
+                else if (cellsHowManyNumberOfBombs[[y, x]] == 8) {
+                    btn.src = './images/num8.png'
+                }
+                else {
+                    btn.src = './images/empty.png'
+                    expandEmptyCells(y, x, btn, width, height)
+                }
+            }
+        }
+
+        function expandBoardNumberedBoxes(y, x) {
+            console.log(cellsHowManyNumberOfBombs[[y, x]]);
+            if (cellsHowManyNumberOfBombs[[y, x]] == 1) {
+                document.getElementById(y + " " + x).src = './images/num1.png'
+            }
+            else if (cellsHowManyNumberOfBombs[[y, x]] == 2) {
+                document.getElementById(y + " " + x).src = './images/num2.png'
+            }
+            else if (cellsHowManyNumberOfBombs[[y, x]] == 3) {
+                document.getElementById(y + " " + x).src = './images/num3.png'
+            }
+            else if (cellsHowManyNumberOfBombs[[y, x]] == 4) {
+                document.getElementById(y + " " + x).src = './images/num4.png'
+            }
+            else if (cellsHowManyNumberOfBombs[[y, x]] == 5) {
+                document.getElementById(y + " " + x).src = './images/num5.png'
+            }
+            else if (cellsHowManyNumberOfBombs[[y, x]] == 6) {
+                document.getElementById(y + " " + x).src = './images/num6.png'
+            }
+            else if (cellsHowManyNumberOfBombs[[y, x]] == 7) {
+                document.getElementById(y + " " + x).src = './images/num7.png'
+            }
+            else if (cellsHowManyNumberOfBombs[[y, x]] == 8) {
+                document.getElementById(y + " " + x).src = './images/num8.png'
+            } else {
+                document.getElementById(y + " " + x).src = './images/empty.png'
+            }
+        }
+
+        function revealAllBombs() {
+            for (y = 0; y < board.length; y++) {
+                for (x = 0; x < board.length; x++) {
+                    if (board[y][x] == 1) {
+                        document.getElementById(y + " " + x).src = './images/mine.jpg';
+                        clearInterval(timestart)
+                        endGame = true
+                    }
+                }
+            }
+        }
+
+        // function expandEmptyCells(y, x, btn) {
+        //     console.log("!22");
+        //     let possibleExpandLocations = [[y - 1, x - 1], [y - 1, x], [y - 1, x + 1], 
+        //                             [y, x - 1], [y, x + 1], [y + 1, x - 1], [y + 1, x], [y + 1, x + 1]];            
+        //     for (i = 0; i < possibleExpandLocations.length; i++) {
+        //         a = possibleExpandLocations[i][0]
+        //         b = possibleExpandLocations[i][1]
+        //         if (-1 < a && a < 9 && -1 < b && b < 9) {
+        //             if (board[a][b] == 2 || board[a][b] == 0 && board[a][b].className != 'revealed') {
+        //                 clickNumberedBoxes(document.getElementById(a + " " + b), a, b);
+        //                 //expandBoardNumberedBoxes(a, b, btn);
+        //             }
+        //         }
+        //     }
+        // }
+
+        function expandEmptyCells(y, x, btn, width, height) {
+            for (let yOffset = -1; yOffset <= 1; yOffset++) {
+                for (let xOffset = -1; xOffset <= 1; xOffset++) {
+                    let possibleBombLocation = [y + yOffset, x + xOffset];
+                    let a = possibleBombLocation[1];
+                    let b = possibleBombLocation[0];
+                    if (-1 < a && a < height + 1 && -1 < b && b < width + 1) {
+                        if (board[b][a] == 2 || board[b][a] == 0 && board[b][a].className != 'revealed') {
+                            clickNumberedBoxes(document.getElementById(b + " " + a), b, a, width, height);
+                        }
+                    }
+                }
+            }
+        }
+        function reset(Difficulty) {
+            var list = document.getElementById("table");
+            while(list.hasChildNodes()){
+                list.removeChild(list.firstChild);
+            }
+            if (Difficulty == 1) {
+                createTable(9, 9, 10)
+            }
+            if (Difficulty == 2) {
+                createTable(15, 15, 40)
+            }
+            if (Difficulty == 3) {
+                createTable(23, 23, 99)
+            }
+
+
+        }
+        function myFunction() {
+            
+            
+        }
+
+
+        createTable(8, 8, 10);
+        console.log(board);
+
+
+
+    </script>
+</body>
+
+</html>
